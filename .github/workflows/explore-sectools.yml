@@ -28,11 +28,8 @@ jobs:
         run: |
           ./sectools/sectools secure-image dummy.bin --sign --signing-mode TEST \
             --outfile dummy_test.mbn 2>&1 | tail -25 || true
-          ls -la dummy_test.mbn 2>/dev/null && python3 -c "
-d = open('dummy_test.mbn','rb').read()
-print('signed size', len(d))
-print('head:', d[:48].hex())
-" || true
+          ls -la dummy_test.mbn 2>/dev/null || true
+          python3 -c "d = open('dummy_test.mbn','rb').read(); print('signed size', len(d)); print('head:', d[:48].hex())" || true
       - name: TEST-mode sign attempt (kodiak profile)
         run: |
           ./sectools/sectools secure-image dummy.bin --sign --signing-mode TEST \
