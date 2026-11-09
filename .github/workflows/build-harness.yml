@@ -11,10 +11,14 @@ jobs:
       - name: Build
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools
-          musl-gcc -static -O1 -o harness vtysh_re/harness.c -ldl
+          musl-gcc -O1 -o harness vtysh_re/harness.c -ldl
           file harness
           ls -la harness
+      - name: Add musl loader
+        run: cp /lib/ld-musl-aarch64.so.1 . 2>/dev/null || cp /lib/libc.musl-aarch64-linux-gnu.so.1 ld-musl-aarch64.so.1 2>/dev/null || true; ls -la
       - uses: actions/upload-artifact@v4
         with:
           name: harness
-          path: harness
+          path: |
+            harness
+            ld-musl-aarch64.so.1
