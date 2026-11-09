@@ -15,7 +15,11 @@ jobs:
           file harness
           ls -la harness
       - name: Add musl loader
-        run: cp /lib/ld-musl-aarch64.so.1 . 2>/dev/null || cp /lib/libc.musl-aarch64-linux-gnu.so.1 ld-musl-aarch64.so.1 2>/dev/null || true; ls -la
+        run: |
+          sudo dpkg -L musl | grep -E 'ld-musl|libc.so' | head
+          LOADER=$(sudo find / -name 'ld-musl-aarch64.so.1' 2>/dev/null | head -1)
+          echo loader: $LOADER
+          cp $LOADER ./ld-musl-aarch64.so.1
       - uses: actions/upload-artifact@v4
         with:
           name: harness
