@@ -20,7 +20,9 @@ jobs:
       - name: Sign OpenWrt container (TEST keys)
         run: |
           ./sectools/sectools secure-image hlos-openwrt.bin --sign --signing-mode TEST \
-            --outfile openwrt_signed.bin 2>&1 | tail -20 || true
+            --security-profile sectools/kodiak_security_profile.xml \
+            --image-id ABL \
+            --outfile openwrt_signed.bin 2>&1 | tail -25 || true
           ls -la openwrt_signed.bin 2>/dev/null || true
       - name: verify structure
         run: |
