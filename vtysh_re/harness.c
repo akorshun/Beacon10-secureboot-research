@@ -14,7 +14,7 @@ static void show_buf(const char *tag, const char *buf, int n) {
     for (int i = 0; i < n; i++) {
         unsigned char c = buf[i];
         if (c >= 0x20 && c < 0x7f) putchar(c);
-        else printf("\x%02x", c);
+        else printf("\\x%02x", c);
     }
     printf("\"\n");
 }
