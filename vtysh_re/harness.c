@@ -45,8 +45,7 @@ int main(int argc, char **argv) {
     }
     if (loadconf) {
         void *r = (void *)((fn2)loadconf)("/configs/se.conf", 0);
-        printf("SE_loadConfFile(/configs/se.conf) = %p
-", r);
+        printf("SE_loadConfFile(/configs/se.conf) = %p\n", r);
     }
     if (loadsec) {
         void *r = (void *)((fn2)loadsec)("/usr/etc/sec.key", 0);
