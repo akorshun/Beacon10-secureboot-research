@@ -7,6 +7,9 @@
 #include <string.h>
 #include <unistd.h>
 
+typedef void *(*fn5)(void *, void *, void *, void *, void *);
+typedef void *(*fn3)(void *, void *, void *);
+typedef void *(*fn2)(void *, void *);
 typedef void *(*anyf)(void);
 
 static void dump_hex(const char *tag, const unsigned char *p, int n) {
@@ -54,11 +57,11 @@ int main(int argc, char **argv) {
         SecBlockInit, gen_ont, gen_vty, gen_mgnt, gen_wlan, gen_omci, getkey, loadconf, loadsec, getconf, auth, setkv, setkey);
 
     if (loadconf) {
-        void *r = (void *)loadconf("/usr/etc/se.conf");
+        void *r = (void *)((fn2)loadconf)("/usr/etc/se.conf", 0);
         printf("SE_loadConfFile(/usr/etc/se.conf) = %p\n", r);
     }
     if (loadsec) {
-        void *r = (void *)loadsec("/usr/etc/se.conf");
+        void *r = (void *)((fn2)loadsec)("/usr/etc/se.conf", 0);
         printf("SE_loadSecFile(/usr/etc/se.conf) = %p\n", r);
     }
 
@@ -67,7 +70,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < 20; i++) {
             char kn[16]; snprintf(kn, sizeof(kn), "key%d", i);
             char out[256]; memset(out, 0, sizeof(out));
-            void *r = (void *)((anyf)getkey)(kn, out, sizeof(out));
+            void *r = (void *)((fn3)getkey)(kn, out, (void *)(long)sizeof(out));
             if (r && out[0]) printf("key%d = \"%s\"\n", i, out);
         }
     }
@@ -86,19 +89,19 @@ int main(int argc, char **argv) {
             void *f = gens[g].f; if (!f) continue;
             // perm 1: (in, len, salt, out1, out2)
             memset(out1, 0, sizeof(out1)); memset(out2, 0, sizeof(out2));
-            ((anyf)f)((void *)input, (void *)(long)pwlen, (void *)salt, out1, out2);
+            ((fn5)f)((void *)input, (void *)(long)pwlen, (void *)salt, out1, out2);
             printf("%s p1: in->out1: ", gens[g].name); show_buf("", out1, 40); printf("  out2: "); show_buf("", out2, 40);
             // perm 2: (out, len, salt, in, in2)
             memset(out1, 0, sizeof(out1)); memset(out2, 0, sizeof(out2));
-            ((anyf)f)(out1, (void *)(long)pwlen, (void *)salt, (void *)input, out2);
+            ((fn5)f)(out1, (void *)(long)pwlen, (void *)salt, (void *)input, out2);
             printf("%s p2: out1: ", gens[g].name); show_buf("", out1, 40); printf("  out2: "); show_buf("", out2, 40);
             // perm 3: (in, salt, len, out1, out2)
             memset(out1, 0, sizeof(out1)); memset(out2, 0, sizeof(out2));
-            ((anyf)f)((void *)input, (void *)salt, (void *)(long)pwlen, out1, out2);
+            ((fn5)f)((void *)input, (void *)salt, (void *)(long)pwlen, out1, out2);
             printf("%s p3: out1: ", gens[g].name); show_buf("", out1, 40); printf("  out2: "); show_buf("", out2, 40);
             // perm 4: (in, len, out1, out2, salt)
             memset(out1, 0, sizeof(out1)); memset(out2, 0, sizeof(out2));
-            ((anyf)f)((void *)input, (void *)(long)pwlen, out1, out2, (void *)salt);
+            ((fn5)f)((void *)input, (void *)(long)pwlen, out1, out2, (void *)salt);
             printf("%s p4: out1: ", gens[g].name); show_buf("", out1, 40); printf("  out2: "); show_buf("", out2, 40);
         }
     }
