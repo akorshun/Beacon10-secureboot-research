@@ -1,4 +1,4 @@
-name: Explore sectools CLI (arm64)
+name: Explore sectools signing
 on:
   workflow_dispatch:
 permissions:
@@ -13,23 +13,36 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq libcrypt1 2>&1 | tail -1
           sudo ln -sf /lib/aarch64-linux-gnu/libcrypt.so.1.1.0 /lib/aarch64-linux-gnu/libcrypt.so.2
           chmod +x sectools/sectools
-      - name: secure-image help
-        run: |
-          ./sectools/sectools secure-image --help 2>&1 | head -120 || true
-      - name: secure-image signing-mode TEST help (minimal)
-        run: |
-          ./sectools/sectools secure-image --help 2>&1 > si_help.txt || true
-          grep -iE "mode|test|profile|format|sw|image-id|sign|signing" si_help.txt | head -60 || true
-      - name: try minimal TEST-mode signature of a dummy payload
+      - name: available formats and ids
         run: |
           python3 -c "open('dummy.bin','wb').write(b'A'*65536)"
-          ./sectools/sectools secure-image --image dummy.bin --output dummy_signed.mbn \
-            --signing-mode TEST 2>&1 | head -40 || true
-          ls -la dummy_signed.mbn 2>/dev/null || true
+          echo "=== signature formats ==="
+          ./sectools/sectools secure-image dummy.bin --available-signature-formats 2>&1 | head -20 || true
+          echo "=== image ids ==="
+          ./sectools/sectools secure-image dummy.bin --available-image-ids 2>&1 | head -30 || true
+          echo "=== variants ==="
+          ./sectools/sectools secure-image dummy.bin --available-variants 2>&1 | head -20 || true
+          echo "=== hash algorithms ==="
+          ./sectools/sectools secure-image dummy.bin --available-segment-hash-algorithms 2>&1 | head -10 || true
+      - name: TEST-mode sign attempt (no profile)
+        run: |
+          ./sectools/sectools secure-image dummy.bin --sign --signing-mode TEST \
+            --outfile dummy_test.mbn 2>&1 | tail -25 || true
+          ls -la dummy_test.mbn 2>/dev/null && python3 -c "
+d = open('dummy_test.mbn','rb').read()
+print('signed size', len(d))
+print('head:', d[:48].hex())
+" || true
+      - name: TEST-mode sign attempt (kodiak profile)
+        run: |
+          ./sectools/sectools secure-image dummy.bin --sign --signing-mode TEST \
+            --security-profile sectools/kodiak_security_profile.xml \
+            --outfile dummy_test_k.mbn 2>&1 | tail -25 || true
+          ls -la dummy_test_k.mbn 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
-          name: sectools-explore
+          name: sectools-sign-tests
           path: |
-            si_help.txt
             dummy*
+            si_*.txt
       - run: echo done
