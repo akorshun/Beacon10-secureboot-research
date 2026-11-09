@@ -1,0 +1,20 @@
+name: Build sec engine harness
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools
+          musl-gcc -static -O1 -o harness vtysh_re/harness.c -ldl
+          file harness
+          ls -la harness
+      - uses: actions/upload-artifact@v4
+        with:
+          name: harness
+          path: harness
