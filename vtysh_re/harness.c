@@ -43,6 +43,11 @@ int main(int argc, char **argv) {
         void *r = (void *)SecBlockInit();
         printf("SecBlockInit = %p\n", r);
     }
+    if (loadconf) {
+        void *r = (void *)((fn2)loadconf)("/configs/se.conf", 0);
+        printf("SE_loadConfFile(/configs/se.conf) = %p
+", r);
+    }
     if (loadsec) {
         void *r = (void *)((fn2)loadsec)("/usr/etc/sec.key", 0);
         printf("SE_loadSecFile(/usr/etc/sec.key) = %p\n", r);
