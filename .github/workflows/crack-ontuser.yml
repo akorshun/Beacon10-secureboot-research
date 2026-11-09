@@ -1,0 +1,50 @@
+name: Crack ONTUSER hash
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  crack:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install john and wordlists
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq john
+          wget -q https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt -O rockyou.txt || true
+          wc -l rockyou.txt 2>/dev/null || echo "rockyou download failed"
+      - name: Build candidate list
+        run: |
+          python3 - <<'EOF'
+          base = set()
+          serials = ['ALCLEB4CE6FC', 'ALCLEB4CE79F']
+          fws = ['3TN00367LJLJ17', 'LJL.J17p01', '3TN00201ABAA']
+          obf = ['nSW6wc2[uofm', '7lo:p9UzcjrS']
+          for s in serials + fws + obf:
+              base.add(s); base.add(s.lower()); base.add(s.upper())
+              b = s.encode()
+              base.add(b.hex()); base.add(b[:4].hex()); base.add(b[:4].hex().upper())
+              base.add(b[:6].hex()); base.add(b[:8].hex())
+              base.add(s[:12]); base.add(s[:8]); base.add(s[:6]); base.add(s[-8:]); base.add(s[-12:])
+              base.add(s + '07'); base.add(b[:4].hex() + '07')
+              import hashlib
+              base.add(hashlib.md5(b).hexdigest()[:12])
+              base.add(hashlib.sha256(b).hexdigest()[:12])
+          # vendor-ish defaults
+          for w in ['ONTUSER', 'ontuser', 'admin1234', 'Nokia1234', 'nokia1234',
+                    'ALCL1234', 'alcl', '41434c4c', 'SANDOM', 'san-diego']:
+              base.add(w)
+          with open('candidates.txt', 'w') as f:
+              f.write('\n'.join(sorted(base)))
+          print('candidates:', len(base))
+          EOF
+      - name: Direct candidate test
+        run: |
+          echo '$5$oKDRv2eE/FvWfbYb$KUZMFQhW5OmeG.Cd5FqBTCOaxo0MLmkYxw.eecp0RC9' > hash.txt
+          john --format=sha256crypt --wordlist=candidates.txt hash.txt 2>&1 | tail -5
+          john --show hash.txt 2>&1 | head -3
+      - name: Dictionary + rules attack
+        run: |
+          timeout 3000 john --format=sha256crypt --wordlist=rockyou.txt --rules=Jumbo hash.txt 2>&1 | tail -5 || true
+          john --show hash.txt 2>&1 | head -3
