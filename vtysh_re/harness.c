@@ -67,6 +67,8 @@ int main(int argc, char **argv) {
 
     // Dump derived keys by name: key0..key19
     if (getkey) {
+        printf("--- keys after init ---
+");
         for (int i = 0; i < 20; i++) {
             char kn[16]; snprintf(kn, sizeof(kn), "key%d", i);
             char out[256]; memset(out, 0, sizeof(out));
