@@ -1,0 +1,30 @@
+name: Explore sectools CLI (arm64)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  explore:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare sectools
+        run: |
+          chmod +x sectools/sectools
+          ./sectools/sectools --help 2>&1 | head -60 || true
+      - name: sectools version/info
+        run: |
+          ./sectools/sectools --version 2>&1 | head -10 || true
+          ./sectools/sectools secimage --help 2>&1 | head -80 || true
+      - name: signing-mode options
+        run: |
+          ./sectools/sectools secimage --help 2>&1 | grep -iE "mode|test|sign|profile|format|sw_id|elf" | head -40 || true
+      - name: full help dump
+        run: |
+          ./sectools/sectools --help > sectools_help.txt 2>&1 || true
+          ./sectools/sectools secimage --help > sectools_secimage_help.txt 2>&1 || true
+          wc -l sectools_help.txt sectools_secimage_help.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sectools-help
+          path: sectools_*.txt
