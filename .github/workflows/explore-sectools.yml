@@ -1,40 +1,40 @@
-name: Explore sectools signing
+name: Sign OpenWrt container
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  explore:
+  sign:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare sectools
+      - name: Prepare
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq libcrypt1 2>&1 | tail -1
           sudo ln -sf /lib/aarch64-linux-gnu/libcrypt.so.1.1.0 /lib/aarch64-linux-gnu/libcrypt.so.2
           chmod +x sectools/sectools
-      - name: list ABL-capable image ids and formats
+          ls -la hlos-openwrt.bin || true
+      - name: Sign OpenWrt container (TEST keys)
         run: |
-          echo "=== image ids (kodiak) ==="
-          ./sectools/sectools secure-image dummy.bin --available-image-ids \
-            --security-profile sectools/kodiak_security_profile.xml 2>&1 | head -40 || true
-          echo "=== signature formats (kodiak) ==="
-          ./sectools/sectools secure-image dummy.bin --available-signature-formats \
-            --security-profile sectools/kodiak_security_profile.xml 2>&1 | head -20 || true
-      - name: TEST-sign the stock 0:HLOS with ABL image id (kodiak)
+          ./sectools/sectools secure-image hlos-openwrt.bin --sign --signing-mode TEST \
+            --outfile openwrt_signed.bin 2>&1 | tail -20 || true
+          ls -la openwrt_signed.bin 2>/dev/null || true
+      - name: verify structure
         run: |
-          python3 -c "open('stock_hlos.bin','wb').write(open('stock-p24.bin','rb').read())" 2>/dev/null || \
-            curl -sL "https://raw.githubusercontent.com/akorshun/Beacon10-secureboot-research/main/stock-p24.bin" -o stock_hlos.bin 2>/dev/null || true
-          ls -la stock_hlos.bin 2>/dev/null || true
-          ./sectools/sectools secure-image stock_hlos.bin --sign --signing-mode TEST \
-            --security-profile sectools/kodiak_security_profile.xml \
-            --image-id ABL \
-            --outfile stock_resigned.mbn 2>&1 | tail -30 || true
-          ls -la stock_resigned.mbn 2>/dev/null || true
+          python3 -c "
+import struct
+d = open('openwrt_signed.bin','rb').read()
+print('size:', len(d))
+phoff = struct.unpack('<I', d[0x1c:0x20])[0]
+phnum = struct.unpack('<H', d[0x2c:0x2e])[0]
+print('ELF phoff=%#x phnum=%d' % (phoff, phnum))
+for k in range(phnum):
+    ph = d[phoff+k*0x20:phoff+(k+1)*0x20]
+    p_type, p_offset, p_vaddr, p_paddr, p_filesz = struct.unpack('<5I', ph[:20])
+    print('  ph%d type=%d off=%#x vaddr=%#x filesz=%#x' % (k, p_type, p_offset, p_vaddr, p_filesz))
+" || true
       - uses: actions/upload-artifact@v4
         with:
-          name: sign-tests
-          path: |
-            stock_resigned.mbn
-            stock_hlos.bin
+          name: openwrt-signed
+          path: openwrt_signed.bin
       - run: echo done
