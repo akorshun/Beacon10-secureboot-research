@@ -1,6 +1,9 @@
 name: Sign OpenWrt container
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/explore-sectools.yml']
 permissions:
   contents: read
 jobs:
