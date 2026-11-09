@@ -21,7 +21,7 @@ jobs:
           ls -la openwrt_signed.bin 2>/dev/null || true
       - name: verify structure
         run: |
-          python3 -c "
+          python3 - <<'PYEOF'
 import struct
 d = open('openwrt_signed.bin','rb').read()
 print('size:', len(d))
@@ -32,7 +32,7 @@ for k in range(phnum):
     ph = d[phoff+k*0x20:phoff+(k+1)*0x20]
     p_type, p_offset, p_vaddr, p_paddr, p_filesz = struct.unpack('<5I', ph[:20])
     print('  ph%d type=%d off=%#x vaddr=%#x filesz=%#x' % (k, p_type, p_offset, p_vaddr, p_filesz))
-" || true
+PYEOF
       - uses: actions/upload-artifact@v4
         with:
           name: openwrt-signed
