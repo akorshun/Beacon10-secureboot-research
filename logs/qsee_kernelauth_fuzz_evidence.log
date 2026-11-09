@@ -1,0 +1,108 @@
+# QSEE kernel-auth parser fuzzing — serial evidence (router #2, IPQ9574, 2026-11-09/10)
+# 76 mutations of the 0:HLOS container tested via bootipq (QSEE SCM kernel-auth, svc 1 / cmd 0x1e)
+# Result: 74 clean rejects, 2 hard hangs of the secure world (no auth verdict, no BUG, no WDT reset)
+
+## CLEAN REJECT (baseline, sectools TEST-signed container — for comparison)
+
+IPQ9574# bootipq
+boot_fail_count get success, value is 0...
+sb_value get success, value is 0x27...
+active patition 0 != primary boot 1, so set sb_flag to default
+current active image partition is image1..
+**** BOOT FAIL 1 TIMES****
+sb_flag before save 72...
+Saving Environment to MMC...
+Writing to MMC(0)... Writing env info to backup partition...
+done
+bootargs: console=ttyMSM0,115200n8
+
+MMC read: dev # 0, block # 70178, count 148 ... 148 blocks read: OK
+Parsing phdr load addr 0x0 offset 0x0 size 0x94 type 0x0
+Parsing phdr load addr 0x0 offset 0x1000 size 0xe48 type 0x0
+Parsing phdr load addr 0x44000000 offset 0x2000 size 0x391ea4 type 0x1
+
+MMC read: dev # 0, block # 70178, count 20480 ... 20480 blocks read: OK
+Use partnumber 3TN00201ABAA named dtb for kernel!
+Get fit config name as config@3TN00201AB!
+## Loading kernel from FIT Image at 44000000 ...
+   Using 'config@3TN00201AB' configuration
+   Trying 'kernel@1' kernel subimage
+     Description:  ARM64 OpenWrt Linux-5.4.164
+     Type:         Kernel Image
+     Compression:  lzma compressed
+     Data Start:   0x440000e8
+     Data Size:    3406261 Bytes = 3.2 MiB
+     Architecture: AArch64
+     OS:           Linux
+     Load Address: 0x
+
+## HANG: phdr1.p_offset=0xffffffff (metadata segment descriptor)
+
+IPQ9574# bootipq
+boot_fail_count get success, value is 0...
+sb_value get success, value is 0x72...
+current active image partition is image1..
+**** BOOT FAIL 1 TIMES****
+sb_flag before save 72...
+Saving Environment to MMC...
+Writing to MMC(0)... Writing env info to backup partition...
+done
+bootargs: console=ttyMSM0,115200n8
+
+MMC read: dev # 0, block # 70178, count 148 ... 148 blocks read: OK
+Parsing phdr load addr 0x0 offset 0x0 size 0x94 type 0x0
+Parsing phdr load addr 0x0 offset 0xffffffff size 0x1060 type 0x0
+Parsing phdr load addr 0x44000000 offset 0x3000 size 0x5bba64 type 0x1
+
+MMC read: dev # 0, block # 70178, count 20480 ... 20480 blocks read: OK
+In:    serial@78B1000
+Out:   serial@78B1000
+Err:   serial@78B1000
+machid: 8050101
+eth0 MAC Address from ART is not valid
+eth1 MAC Address from ART is not valid
+eth2 MAC Address from ART is not valid
+eth3 MAC Address from ART is not valid
+eth4 MAC Address from ART is not valid
+eth5 MAC Address from ART is not valid
+
+Net:   MAC0 addr:0:3:7
+
+[... after "20480 blocks read: OK" the console goes permanently silent:
+     no "Kernel image authentication failed", no BUG(), no "resetting",
+     no watchdog reset, UART dead, no network — power cycle required.]
+
+
+## HANG: phdr1.p_filesz=0xffffffff (metadata segment descriptor)
+
+IPQ9574# bootipq
+boot_fail_count get success, value is 0...
+sb_value get success, value is 0x72...
+current active image partition is image1..
+**** BOOT FAIL 1 TIMES****
+sb_flag before save 72...
+Saving Environment to MMC...
+Writing to MMC(0)... Writing env info to backup partition...
+done
+bootargs: console=ttyMSM0,115200n8
+
+MMC read: dev # 0, block # 70178, count 148 ... 148 blocks read: OK
+Parsing phdr load addr 0x0 offset 0x0 size 0x94 type 0x0
+Parsing phdr load addr 0x0 offset 0x1000 size 0xffffffff type 0x0
+Parsing phdr load addr 0x44000000 offset 0x3000 size 0x5bba64 type 0x1
+
+MMC read: dev # 0, block # 70178, count 20480 ... 20480 blocks read: OK
+EDMA ver 1 hw init
+Num rings - TxDesc:1 (0-0) TxCmpl:1 (0-0)
+RxDesc:1 (0-0) RxFill:1 (0-0)
+ipq9574_edma_alloc_rings: successfull
+ipq9574_edma_setup_ring_resources: successfull
+ipq9574_edma_configure_rings: successfull
+ipq9574_edma_hw_init: successfull
+eth0
+Warning: eth0 MAC addresses don't match:
+Address in SROM is         00:03:7f:ba:db
+
+[... after "20480 blocks read: OK" the console goes permanently silent:
+     no "Kernel image authentication failed", no BUG(), no "resetting",
+     no watchdog reset, UART dead, no network — power cycle required.]

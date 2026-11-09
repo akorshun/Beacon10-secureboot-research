@@ -214,6 +214,56 @@ The only software route to running OpenWrt remains the U-Boot `bootm` path over 
 (manual or a UART auto-typing dongle), since `bootm` itself never calls
 `do_boot_signedimg`.
 
+## 7c. Fuzzing the QSEE kernel-auth parser — a pre-authentication hang (2026-11-10)
+
+Since QSEE parses the container *before* any signature verdict, the kernel-auth input
+format itself was fuzzed: **76 mutations** of the `0:HLOS` container (secboot metadata
+header fields, metadata version, zeroed signature/cert chain, ELF header fields,
+`e_phnum`/`e_phoff`/`e_phentsize`, and the three program-header descriptors) were booted
+through `bootipq` one per cycle, writing each variant into the primary HLOS slot from the
+U-Boot prompt (`mmc read` from a scratch partition + `mmc write`), and classifying the
+serial outcome. Full result table:
+[`logs/qsee_fuzz_results.json`](logs/qsee_fuzz_results.json); serial evidence:
+[`logs/qsee_kernelauth_fuzz_evidence.log`](logs/qsee_kernelauth_fuzz_evidence.log).
+
+**Result: 74 clean rejects, 0 bypasses, 2 hard hangs.** The two hangs are mutations of the
+metadata segment descriptor (phdr1) — the descriptor QSEE must use to locate the secboot
+metadata inside the image:
+
+| phdr1 mutation | outcome |
+|---|---|
+| `p_offset = 0xffffffff` | **hard hang**: after the whole-partition read there is no `Kernel image authentication failed`, no `BUG!`, no `resetting`, no watchdog reset — UART goes permanently silent, network dead, board unrecoverable until power cycle |
+| `p_filesz = 0xffffffff` | identical hard hang |
+
+A clean reject, for comparison, always prints `Kernel image authentication failed` →
+`BUG: failure at board/qca/arm/common/cmd_bootqca.c:937` → `resetting` within seconds.
+The hang therefore happens *inside* the SCM kernel-auth call, in the secure world, while
+QSEE is locating/reading the metadata through the attacker-controlled segment descriptor —
+before any signature verdict. Impact: **a pre-authentication denial-of-service of the
+secure boot chain**: anyone who can write `0:HLOS` (e.g. the web-UI race of
+[Beacon10-Getshell](https://github.com/akorshun/Beacon10-Getshell)) bricks the boot of the
+device until a power cycle, with the board dying in a state that produces no crash dump.
+A controlled crash of the secure-world parser is also the natural starting point for
+escalation research (memory-corruption → secure-world code execution), though no such
+escalation was attempted or achieved here.
+
+Notes on the harness, useful for reproduction:
+
+* The vendor U-Boot exposes `secure_authenticate <sw_id> <addr> <size>` (SCM svc 1 /
+  cmd 0x1f), but that is the **MBN/rootfs auth service** — it returns `-2` (`SCM_EINVAL_ARG`)
+  for every sw_id 0x0–0x17 against the kernel container. The boot path uses a different
+  call (`qca_scm_auth_kernel`, svc 1 / cmd **0x1e**, a single VAL argument = image base),
+  which has no standalone U-Boot command — hence the bootipq-driven loop.
+* The U-Boot prompt is **W^X-hardened**: the ARM L1 page tables mark the entire writable
+  DRAM XN (execute-never) except the U-Boot region itself (`0x4a401c0e` vs
+  `0x4a301c1e`/`0x50001c1e` descriptors), so `go`-based code execution from the prompt is
+  impossible (`prefetch abort` at any writable address). A commendable hardening — and the
+  reason the fuzzing had to go through real boots.
+* The U-Boot CLI also has a command inactivity timeout ("Timeout waiting for command" →
+  reset), and the A/B slot switch is `sh img` (bare `sh` only *shows* the state); when the
+  BOOTCONFIG active slot disagrees with the `sb_flag` primary, bootipq force-boots the
+  primary slot.
+
 ## 8. Disclosure
 
 Findings were developed 2026-11-06…09 on personal devices and shared publicly in the
