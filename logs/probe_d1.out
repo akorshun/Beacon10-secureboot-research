@@ -1,0 +1,160 @@
+
+arch_number = 0x08050101
+boot_params = 0x40000100
+DRAM bank   = 0x00000000
+-> start    = 0x40000000
+-> size     = 0x40000000
+eth0name    = eth0
+ethaddr     = 48:41:7B:FF:76:90
+current eth = eth0
+ip_addr     = 192.168.10.10
+baudrate    = 115200 bps
+TLB addr    = 0x4A510000
+relocaddr   = 0x4A400000
+reloc off   = 0x00000000
+irq_sp      = 0x4A27FA90
+sp start    = 0x4A27FA80
+IPQ9574# bootipq
+boot_fail_count get success, value is 1...
+sb_value get success, value is 0x72...
+current active image partition is image1..
+**** BOOT FAIL 2 TIMES****
+sb_flag before save 72...
+Saving Environment to MMC...
+Writing to MMC(0)... Writing env info to backup partition...
+done
+bootargs: console=ttyMSM0,115200n8
+
+MMC read: dev # 0, block # 70178, count 148 ... 148 blocks read: OK
+Parsing phdr load addr 0x0 offset 0x0 size 0x94 type 0x0
+Parsing phdr load addr 0x0 offset 0x1000 size 0xe48 type 0x0
+Parsing phdr load addr 0x49a42000 offset 0x2000 size 0x5bba64 type 0x1
+
+MMC read: dev # 0, block # 70178, count 20480 ... 
+Format: Log Type - Time(microsec) - Message - Optional Info
+Log Type: B - Since Boot(Power On Reset),  D - Delta,  S - Statistic
+S - QC_IMAGE_VERSION_STRING=BOOT.XF.0.3.1-00081-IPQ90xxLZB-2
+S - IMAGE_VARIANT_STRING=IPQ9574LA
+S - OEM_IMAGE_VERSION_STRING=crm-ubuntu43
+S - Boot Interface: eMMC
+S - Secure Boot: On
+S - Boot Config @ 0x000a602c = 0x000002e2
+S - JTAG ID @ 0x000a607c = 0x001af0e1
+S - OEM ID @ 0x000a6080 = 0x00ab00bc
+S - Serial Number @ 0x000a60a8 = 0x571909b8
+S - Feature Config Row 0 @ 0x000a4010 = 0x0000000000000000
+S - Feature Config Row 1 @ 0x000a4018 = 0x0000000000000000
+S - Feature Config Row 2 @ 0x000a4020 = 0x0000300000000000
+S - FM_VERSION @ 0x000a4004 = 0x00000003
+S - TAG_VERSION @ 0x000a4004 = 0x00000006
+S - PBL Patch Ver: 0
+S - TME-L LCS: 0x0b
+S - I-cache: Off
+S - D-cache: Off
+B -      3413 - PBL, Start
+B -     11496 - bootable_media_detect_entry, Start
+B -     13763 - bootable_media_detect_success, Start
+B -     56715 - elf_loader_entry, Start
+B -     57181 - auth_hash_seg_entry, Start
+B -     58348 - auth_hash_seg_exit, Start
+B -     66168 - elf_segs_hash_verify_entry, Start
+B -    101873 - elf_segs_hash_verify_exit, Start
+B -    110965 - auth_xbl_sec_hash_seg_entry, Start
+B -    111462 - auth_xbl_sec_hash_seg_exit, Start
+B -    119280 - xbl_sec_segs_hash_verify_entry, Start
+B -    119281 - xbl_sec_segs_hash_verify_exit, Start
+B -    120891 - PBL, End
+B -     98637 - SBL1, Start
+B -    288103 - GCC [RstStat:0x10, RstDbg:0x600030] WDog Stat : 0x4
+B -    290390 - clock_init, Start
+D -       976 - clock_init, Delta
+B -    298869 - boot_flash_init, Start
+D -     64721 - boot_flash_init, Delta
+B -    367647 - sbl1_ddr_set_default_params, Start
+D -       366 - sbl1_ddr_set_default_params, Delta
+B -    373564 - boot_config_data_table_init, Start
+D -      3721 - boot_config_data_table_init, Delta - (575 Bytes)
+B -    383049 - CDT Version:2,Platform ID:8,Major ID:5,Minor ID:1,Subtype:1
+B -    388356 - Image Load, Start
+D -      6588 - OEM_MISC Image Loaded, Delta - (0 Bytes)
+B -    397598 - Image Load, Start
+D -      5155 - PMIC Image Loaded, Delta - (0 Bytes)
+B -    405436 - sbl1_ddr_set_params, Start
+B -    410743 - CPR configuration: 0x3a7
+B -    413641 - Pre_DDR_clock_init, Start
+D -         0 - Pre_DDR_clock_init, Delta
+D -         0 - sbl1_ddr_set_params, Delta
+B -    715133 - Image Load, Start
+D -      4117 - Auth Metadata
+D -       396 - Segments hash check
+D -     12505 - APDP Image Loaded, Delta - (5148 Bytes)
+B -    734501 - Image Load, Start
+D -    982039 - TME-L FW Image Loaded, Delta - (202008 Bytes)
+B -   1718370 - Image Load, Start
+D -      3111 - QTI_MISC Image Loaded, Delta - (0 Bytes)
+B -   1724988 - Image Load, Start
+D -      4087 - Auth Metadata
+D -       701 - Segments hash check
+D -     17355 - QSEE Dev Config Image Loaded, Delta - (34074 Bytes)
+B -   1744081 - Image Load, Start
+D -      8540 - Auth Metadata
+D -     11743 - Segments hash check
+D -     51759 - QSEE Image Loaded, Delta - (1404476 Bytes)
+B -   1796968 - Image Load, Start
+D -      3935 - Auth Metadata
+D -      1769 - Segments hash check
+D -     21746 - RPM Image Loaded, Delta - (97836 Bytes)
+B -   1820392 - Image Load, Start
+D -      3904 - Auth Metadata
+D -      3904 - Segments hash check
+D -     22479 - APPSBL Image Loaded, Delta - (587348 Bytes)
+B -   1846256 - SBL1, End
+D -   1751035 - SBL1, Delta
+S - Flash Throughput, 42230 KB/s  (2332137 Bytes,  55224 us)
+S - Core 0 Frequency, 800 MHz
+S - DDR Frequency, 1600 MHz
+
+
+U-Boot 2016.01 (Sep 24 2024 - 09:02:39 +0000)
+
+       Watchdog enabled
+DRAM:  smem ram ptable found: ver: 2 len: 4
+1 GiB
+NAND:  QPIC: disabled, skipping initialization
+SF: Unsupported flash IDs: manuf 00, jedec 0000, ext_jedec 0000
+ipq_spi: SPI Flash not found (bus/cs/speed/mode) = (0/0/48000000/0)
+0 MiB
+MMC:   <NULL>: 0 (eMMC)
+PCI0 is not defined in the device tree
+PCI1 is not defined in the device tree
+PCI Link Intialized
+PCI Link Intialized
+In:    serial@78B1000
+Out:   serial@78B1000
+Err:   serial@78B1000
+machid: 8050101
+eth0 MAC Address from ART is not valid
+eth1 MAC Address from ART is not valid
+eth2 MAC Address from ART is not valid
+eth3 MAC Address from ART is not valid
+eth4 MAC Address from ART is not valid
+eth5 MAC Address from ART is not valid
+
+Net:   MAC0 addr:0:3:7f:ba:db:ad
+PHY ID1: 0x4d
+PHY ID2: 0xd0b1
+
+phy chip id: 0x1cc849 id not matching for phy id: 0x4 with phy_type: 0x3 and phy address: 0x7
+phy chip id: 0x1ccaf3 id not matching for phy id: 0x5 with phy_type: 0x3 and phy address: 0x8EDMA ver 1 hw init
+Num rings - TxDesc:1 (0-0) TxCmpl:1 (0-0)
+RxDesc:1 (0-0) RxFill:1 (0-0)
+ipq9574_edma_alloc_rings: successfull
+ipq9574_edma_setup_ring_resources: successfull
+ipq9574_edma_configure_rings: successfull
+ipq9574_edma_hw_init: successfull
+eth0
+Warning: eth0 MAC addresses don't match:
+Address in SROM is         00:03:7f:ba:db:ad
+Address in environment is  48:41:7b:ff:76:90
+
+IPQ9574# 
