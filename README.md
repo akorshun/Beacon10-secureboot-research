@@ -157,6 +157,63 @@ logs/probe_b.bootipq.out           crossing-probe console capture (the proof)
 logs/probe_d1.out                  boundary probe console capture
 ```
 
+## 7b. Attempted bypass via test-key re-signing (2026-11-09 — failed, and why)
+
+Because the memory-failure path is closed by XPU, the remaining idea was to **legitimately
+sign our own image**: if the fused root of trust were a *publicly known* Qualcomm test key,
+the vendor `sectools` tool could re-sign an arbitrary (OpenWrt) `0:HLOS` container and
+`bootipq` would authenticate it. This was tested on hardware and conclusively ruled out.
+
+**What the fuse actually pins.** The secboot metadata (seg1) of the stock `0:HLOS` carries a
+two-cert chain: attest cert → self-signed root **`CN=TESTCERT ROOT CA, OU=General TestCert
+rootca, O=QTI`** (RSA-2048, e=65537, created 2022-11-16, 10-year validity). The QFPROM
+`PK_HASH_0` region (corrected-address view readable from U-Boot `md` at `0x000a02e0`,
+mirrored at `0x000a42e0`/`0x000a60c8`) holds exactly **48 bytes = SHA-384 of the TESTCERT
+ROOT CA certificate** (`e9026b5677…fecd7761`) — a single 6×64-bit row region, i.e. **no
+second root-cert-hash slot exists on this platform** for a multi-root trick. The
+`OEM_SECURE_BOOT1` control row selects between `PK_HASH_IN_FUSE` (this hash) and a PBL ROM
+table; the TESTCERT hash appears **nowhere in any on-flash bootloader image** (p1–p24
+searched, including bit-rotations), so the fuse path is the only one in use.
+
+**Hardware test of sectools TEST signing.** A stock-format `0:HLOS` container rebuilt with
+an OpenWrt FIT (`config@3TN00201AB`) was signed with `sectools v1.43` (aarch64) in
+`--signing-mode TEST` and flashed to the active slot (`0:HLOS_1`, p25; rootfs to p27).
+`bootipq` read and parsed the container, then QSEE rejected it:
+
+```
+MMC read: dev # 0, block # 70178, count 20480 ... 20480 blocks read: OK
+Kernel image authentication failed
+BUG: failure at board/qca/arm/common/cmd_bootqca.c:937/do_boot_signedimg()!
+BUG!
+resetting
+```
+
+Certificate comparison explains it: sectools v1.43's built-in TEST PKI is
+**`SECTOOLS SECP384R1 CURVE TEST ROOT` (2016, EC P-384)** — a different root from the
+device's 2022 RSA PKI. The same negative result holds for the **2025-era sectools** build
+(qti_signing_server 25.1.0): its embedded test-signing assets cover 28 algorithm families
+(RSA-2048/4096 × e=3/257/65537 × SHA-256/384 × PKCS/PSS, EC P-256/P-384, Dilithium3,
+ML-DSA-65/87) with root0–root15 each, and **none of the ~120 built-in root certificates
+matches the device's TESTCERT ROOT CA**. The 2022 PKI is vendor-generated ("General
+TestCert rootca" is a sectools-generated placeholder identity); its private key exists only
+at the vendor.
+
+**Other dead ends checked and closed:**
+
+* U-Boot env `secboot` / `sb_flag` — manufacturing flags (fuse-blow flow and A/B slot
+  state respectively), not authentication bypasses; `do_boot_signedimg` consults the fuse,
+  not these variables.
+* `fuseipq <addr>` (U-Boot) — blows a sectools-generated `sec.dat` fuse image; it cannot
+  help: the platform has no free root-hash row to add a second root of our own.
+* Reading QFPROM from Linux (`/sys/bus/nvmem/qfprom0`) is blocked (returns empty); the
+  corrected-address alias is readable from U-Boot `md`, but raw-row addresses fault.
+
+**Conclusion.** The root of trust is a vendor-only private key. With public tooling, secure
+boot on this device cannot be broken: neither by memory corruption (§5) nor by re-signing.
+The only software route to running OpenWrt remains the U-Boot `bootm` path over UART
+(manual or a UART auto-typing dongle), since `bootm` itself never calls
+`do_boot_signedimg`.
+
 ## 8. Disclosure
 
 Findings were developed 2026-11-06…09 on personal devices and shared publicly in the

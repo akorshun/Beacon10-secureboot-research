@@ -1,9 +1,6 @@
 name: Sign OpenWrt container
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/explore-sectools.yml']
 permissions:
   contents: read
 jobs:
@@ -16,19 +13,27 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq libcrypt1 2>&1 | tail -1
           sudo ln -sf /lib/aarch64-linux-gnu/libcrypt.so.1.1.0 /lib/aarch64-linux-gnu/libcrypt.so.2
           chmod +x sectools/sectools
-          ls -la hlos-openwrt.bin || true
-      - name: Sign OpenWrt container (TEST keys)
+          ls -la openwrt_unsigned_bootipq.bin
+      - name: Sign OpenWrt bootipq container
         run: |
-          ./sectools/sectools secure-image hlos-openwrt.bin --sign --signing-mode TEST \
+          ./sectools/sectools secure-image openwrt_unsigned_bootipq.bin --sign --signing-mode TEST \
             --security-profile sectools/kodiak_security_profile.xml \
             --image-id ABL \
-            --outfile openwrt_signed.bin 2>&1 | tail -25 || true
-          ls -la openwrt_signed.bin 2>/dev/null || true
-      - name: verify structure
-        run: |
-          python3 -c "import struct; d = open('openwrt_signed.bin','rb').read(); print('size:', len(d)); phoff = struct.unpack('<I', d[0x1c:0x20])[0]; phnum = struct.unpack('<H', d[0x2c:0x2e])[0]; print('ELF phoff=%#x phnum=%d' % (phoff, phnum)); [print('  ph%d type=%d off=%#x vaddr=%#x filesz=%#x' % (k, *struct.unpack('<I', d[phoff+k*0x20:phoff+k*0x20+4]), *struct.unpack('<II', d[phoff+k*0x20+8:phoff+k*0x20+16]), struct.unpack('<I', d[phoff+k*0x20+16:phoff+k*0x20+20])[0])) for k in range(struct.unpack('<H', d[0x2c:0x2e])[0])]" || true
+            --outfile openwrt_final_signed.bin 2>&1 | tail -25 || true
+          ls -la openwrt_final_signed.bin 2>/dev/null || true
+          python3 -c "
+import struct
+d = open('openwrt_final_signed.bin','rb').read()
+print('size:', len(d))
+e_phoff = struct.unpack('<I', d[0x1c:0x20])[0]
+e_phnum = struct.unpack('<H', d[0x2c:0x2e])[0]
+for i in range(e_phnum):
+    ph = d[e_phoff+i*e_phentsize:e_phoff+(i+1)*e_phentsize]
+    p_type, p_offset, p_vaddr, p_filesz = struct.unpack('<4I', ph[:16])
+    print('  ph%d type=%d off=%#x vaddr=%#x filesz=%#x' % (i, p_type, p_offset, p_vaddr, p_filesz))
+" || true
       - uses: actions/upload-artifact@v4
         with:
-          name: openwrt-signed
-          path: openwrt_signed.bin
+          name: openwrt-final-signed
+          path: openwrt_final_signed.bin
       - run: echo done
