@@ -12,22 +12,24 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq libcrypt1 2>&1 | tail -1
           sudo ln -sf /lib/aarch64-linux-gnu/libcrypt.so.1.1.0 /lib/aarch64-linux-gnu/libcrypt.so.2
-          ls -la /lib/aarch64-linux-gnu/libcrypt.so* || true
           chmod +x sectools/sectools
-          ./sectools/sectools --help 2>&1 | head -60 || true
-      - name: sectools version/info
+      - name: secure-image help
         run: |
-          ./sectools/sectools --version 2>&1 | head -10 || true
-          ./sectools/sectools secimage --help 2>&1 | head -80 || true
-      - name: signing-mode options
+          ./sectools/sectools secure-image --help 2>&1 | head -120 || true
+      - name: secure-image signing-mode TEST help (minimal)
         run: |
-          ./sectools/sectools secimage --help 2>&1 | grep -iE "mode|test|sign|profile|format|sw_id|elf" | head -40 || true
-      - name: full help dump
+          ./sectools/sectools secure-image --help 2>&1 > si_help.txt || true
+          grep -iE "mode|test|profile|format|sw|image-id|sign|signing" si_help.txt | head -60 || true
+      - name: try minimal TEST-mode signature of a dummy payload
         run: |
-          ./sectools/sectools --help > sectools_help.txt 2>&1 || true
-          ./sectools/sectools secimage --help > sectools_secimage_help.txt 2>&1 || true
-          wc -l sectools_help.txt sectools_secimage_help.txt
+          python3 -c "open('dummy.bin','wb').write(b'A'*65536)"
+          ./sectools/sectools secure-image --image dummy.bin --output dummy_signed.mbn \
+            --signing-mode TEST 2>&1 | head -40 || true
+          ls -la dummy_signed.mbn 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
-          name: sectools-help
-          path: sectools_*.txt
+          name: sectools-explore
+          path: |
+            si_help.txt
+            dummy*
+      - run: echo done
