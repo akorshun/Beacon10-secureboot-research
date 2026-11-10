@@ -56,8 +56,7 @@ int main(int argc, char **argv) {
         if (!gens[g]) continue;
         memset(out1, 0, sizeof(out1)); memset(out2, 0, sizeof(out2));
         ((fn5)gens[g])(ctx, (void *)(long)12, (void *)"07", out1, out2);
-        printf("%s A: \"", gnames[g]); show_buf(out1, 32); printf("\" | \""); show_buf(out2, 32); printf("\"
-");
+        printf("%s A: \"", gnames[g]); show_buf(out1, 32); printf("\" | \""); show_buf(out2, 32); printf("\"\n");
     }
     return 0;
 }
