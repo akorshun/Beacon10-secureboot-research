@@ -264,6 +264,63 @@ Notes on the harness, useful for reproduction:
   BOOTCONFIG active slot disagrees with the `sb_flag` primary, bootipq force-boots the
   primary slot.
 
+## 7d. The `shell`-escape authentication ("Password2") — fully mapped (2026-11-10)
+
+The vendor integrated shell (`svcroot` login → Quagga `Beacon 10#`) hides a `shell` command
+that escalates to a real uid-0 `/bin/sh` behind a `Password2:` prompt (3 failures → 300 s
+lockout via `/tmp/tryLogin`, deletable by root). Following the methodology of the
+[Nokia Beacon 1 write-up](https://spaceraccoon.dev/nokia-beacon-router-uart-command-injection/)
+(which recovered the per-device password of the Beacon 1 from `gen_varlen_vtyshpw` +
+`libsec_engine.so`), the Beacon 10 implementation was traced end-to-end:
+
+```
+vtysh "shell"  →  /sbin/sec_cli startshell <loginmode>        (the /sbin/secmulti busybox-style binary)
+              →  my_getpass() prints "Password2: "
+              →  SE_passwd_db_auth_ex(input, db)              (libsec_engine.so)
+              →  sec_auth_pwd(input, hash): crypt() against a $5$ (SHA-256-crypt) entry
+              →  on success: startshell_proc() → uid-0 /bin/sh
+```
+
+**Key finding — the authentication database is static and baked into the binary.**
+`/sbin/sec_cli` carries, in plaintext (file offset `0xe10e`), the shadow line the check
+runs against:
+
+```
+ONTUSER:$5$oKDRv2eE/FvWfbYb$KUZMFQhW5OmeG.Cd5FqBTCOaxo0MLmkYxw.eecp0RC9
+```
+
+`ONTUSER` is a hidden uid-0 account with `/bin/sh` (present in the in-memory passwd/group:
+member of `wheel`). There is **no per-device component**: unlike the Beacon 1 (where the
+vtysh password is derived from the unit serial), the Beacon 10 hash is one build-time
+constant shared by every unit running this firmware image (`3TN00367LJLJ17`), regardless of
+ISP. The plaintext password is the output of `gen_varlen_ontupw` (`libsec_engine.so`,
+heavily obfuscated; the rodata carries the generator family tags `MERGE_EX/MGNT/WLAN/OMCI/
+VTYSH/ONTUSER/BLDR` and the key name `key14`), computed by the vendor at build time from
+the key-derivation chain (`keysrc0` = firmware version string, `/usr/etc/sec.key`, engine
+state seeded through `SecSetInputKV`/`SecPreProcessGenHash`).
+
+Reproduction attempts on-device (a musl-compiled `dlopen` harness executed on the router,
+`vtysh_re/harness.c`, built on an aarch64 CI runner) confirm `SecBlockInit` /
+`SecSetInputKV` / `SE_loadConfFile` work, but full key derivation requires the complete
+`SE_escate_start` chain (tamper-state verification against `/configs/cfg.signed` by the
+`detect` daemon) — `SE_loadSecFile` returns error `0xa` ("no fw info") outside it, and the
+generators return empty output. Recovering the plaintext therefore reduces to either
+reversing the escate init chain or an offline dictionary attack against the static
+`$5$` hash; neither has succeeded so far. The mechanism itself, however, is fully
+documented above.
+
+Two related vendor-hardening notes (verified in the U-Boot disassembly and on hardware):
+
+* The `secboot` env var (`1` vs `2`) only toggles the **serial console** at the prompt
+  (same as `console=1`) — the manufacturing "set secure boot flag as 2" step. The HLOS
+  authentication decision is taken from the QFPROM fuse via SCM and is not influenced by
+  any environment variable. (The same knob is the basis of the Beacon 3.1 root method —
+  see [thered0ne's write-up](https://thered0ne.com/?p=351); on the Beacon 10 it does not
+  reach the kernel-authentication path.)
+* `autoboot` provably ignores `bootcmd` even on a factory-clean environment (re-tested
+  2026-11-10 on router #2: custom `bootcmd` was skipped and bootipq ran), closing the
+  environment-based persistence idea for good.
+
 ## 8. Disclosure
 
 Findings were developed 2026-11-06…09 on personal devices and shared publicly in the
