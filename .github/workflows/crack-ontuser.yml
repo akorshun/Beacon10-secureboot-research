@@ -46,5 +46,5 @@ jobs:
           john --show hash.txt 2>&1 | head -3
       - name: Dictionary + rules attack
         run: |
-          timeout 3000 john --format=sha256crypt --wordlist=rockyou.txt --rules=Jumbo hash.txt 2>&1 | tail -5 || true
+          timeout 3000 john --format=sha256crypt --wordlist=rockyou.txt --rules hash.txt 2>&1 | tail -5 || true
           john --show hash.txt 2>&1 | head -3
