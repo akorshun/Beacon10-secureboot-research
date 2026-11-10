@@ -32,14 +32,10 @@ int main(int argc, char **argv) {
 
     void *ctx = SecBlockInit();
     printf("ctx=%p\n", ctx);
-    printf("loadconf(/configs/se.conf)=%p
-", ((fn2)loadconf)("/configs/se.conf", 0));
-    printf("loadsec(/configs/sedb.conf)=%p
-", ((fn2)loadsec)("/configs/sedb.conf", 0));
-    printf("loadsec(/usr/etc/sec.key)=%p
-", ((fn2)loadsec)("/usr/etc/sec.key", 0));
-    printf("loadconf(/usr/etc/se.conf)=%p
-", ((fn2)loadconf)("/usr/etc/se.conf", 0));
+    printf("loadconf(/configs/se.conf)=%p\n", ((fn2)loadconf)("/configs/se.conf", 0));
+    printf("loadsec(/configs/sedb.conf)=%p\n", ((fn2)loadsec)("/configs/sedb.conf", 0));
+    printf("loadsec(/usr/etc/sec.key)=%p\n", ((fn2)loadsec)("/usr/etc/sec.key", 0));
+    printf("loadconf(/usr/etc/se.conf)=%p\n", ((fn2)loadconf)("/usr/etc/se.conf", 0));
 
     printf("--- keys ---\n");
     for (int i = 0; i < 20; i++) {
