@@ -323,8 +323,20 @@ Reproduction attempts on-device (a musl-compiled `dlopen` harness executed on th
 generators return empty output. Recovering the plaintext therefore reduces to either
 reversing the escate init chain or an offline dictionary attack against the static
 `$5$` hash. The full rockyou wordlist (14.3 M candidates, 1 h 39 m, 4 ARM64 cores) was
-exhausted without a hit — consistent with a 12-character generator output. The mechanism
-itself, however, is fully documented above.
+exhausted without a hit — consistent with a 12-character generator output.
+
+**Live-process memory analysis (negative).** Three processes were dumped via
+`/proc/<pid>/mem` (all rw-p regions) and every printable string was tested against the
+static hash: `sec_monitor` (the key-derivation service, 827 KB), `wifihostd` (which
+imports the `gen_varlen_wlanpw` family and has `libsec_engine.so` loaded, 1.4 MB), and the
+`sec_cli` child at the `Password2:` prompt. None contained the plaintext, the escate key
+material, or even the `ONTUSER`/`VTYSH`/`key14` markers — confirming that
+`gen_varlen_ontupw` is **never executed on the device**: the ONTUSER password was derived
+once, at build time, on the vendor's key-provisioning machine. The generator inputs
+(`keysrc` strings + `sec.key` + build-side engine state) do not exist on the production
+unit, and the runtime escate chain serves only tamper detection, not password
+re-derivation. Without the vendor's build-side key state, the ONTUSER plaintext is not
+recoverable from the device.
 
 One further note following the Beacon 3.1 research: the web-UI race used for root access
 here (suspected CVE-2025-9974) is confirmed fixed upstream in firmware branch `BBDR2503`
