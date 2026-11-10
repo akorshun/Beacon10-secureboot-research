@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
     void *ctx = SecBlockInit();
     printf("ctx=%p\n", ctx);
     printf("loadconf(/configs/se.conf)=%p\n", ((fn2)loadconf)("/configs/se.conf", 0));
-    { static char ob[65536]; memset(ob,0,sizeof(ob)); long rc = (long)((fn5)loadsec)("/configs/sedb.conf", ob, (void *)(long)sizeof(ob), 0); printf("loadsec(sedb)=%ld out: ", rc); show_buf(ob, 32); printf("\n"); }
-    { static char ob2[65536]; memset(ob2,0,sizeof(ob2)); long rc2 = (long)((fn5)loadsec)("/usr/etc/sec.key", ob2, (void *)(long)sizeof(ob2), 0); printf("loadsec(sec.key)=%ld out: ", rc2); show_buf(ob2, 32); printf("\n"); }
+    { static char ob[65536]; memset(ob,0,sizeof(ob)); long rc = (long)((fn5)loadsec)("/configs/sedb.conf", ob, (void *)(long)sizeof(ob), 0, 0); printf("loadsec(sedb)=%ld out: ", rc); show_buf(ob, 32); printf("\n"); }
+    { static char ob2[65536]; memset(ob2,0,sizeof(ob2)); long rc2 = (long)((fn5)loadsec)("/usr/etc/sec.key", ob2, (void *)(long)sizeof(ob2), 0, 0); printf("loadsec(sec.key)=%ld out: ", rc2); show_buf(ob2, 32); printf("\n"); }
     printf("loadconf(/usr/etc/se.conf)=%p\n", ((fn2)loadconf)("/usr/etc/se.conf", 0));
 
     printf("--- keys ---\n");
