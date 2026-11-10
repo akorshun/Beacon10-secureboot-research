@@ -13,8 +13,7 @@ static void show_buf(const char *buf, int n) {
     int i;
     for (i = 0; i < n; i++) {
         unsigned char c = buf[i];
-        if (c >= 0x20 && c < 0x7f) putchar(c);
-        else printf(".");
+        printf("%02x", c);
     }
 }
 
