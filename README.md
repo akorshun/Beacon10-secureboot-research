@@ -306,8 +306,18 @@ Reproduction attempts on-device (a musl-compiled `dlopen` harness executed on th
 `detect` daemon) — `SE_loadSecFile` returns error `0xa` ("no fw info") outside it, and the
 generators return empty output. Recovering the plaintext therefore reduces to either
 reversing the escate init chain or an offline dictionary attack against the static
-`$5$` hash; neither has succeeded so far. The mechanism itself, however, is fully
-documented above.
+`$5$` hash. The full rockyou wordlist (14.3 M candidates, 1 h 39 m, 4 ARM64 cores) was
+exhausted without a hit — consistent with a 12-character generator output. The mechanism
+itself, however, is fully documented above.
+
+One further note following the Beacon 3.1 research: the web-UI race used for root access
+here (suspected CVE-2025-9974) is confirmed fixed upstream in firmware branch `BBDR2503`
+(per the [Beacon 3.1 part 2 write-up](https://thered0ne.com/?p=400#comment-37)); the
+`2402b`-branch firmware shipped on the Beacon 10 units tested here remains vulnerable.
+Once an ISP pushes a `BBDR2503`-based build, the root entry point described in
+[Beacon10-Getshell](https://github.com/akorshun/Beacon10-Getshell) stops working — which
+makes the secure-boot situation documented in this repository the only remaining route to
+persistent alternative firmware on this hardware.
 
 Two related vendor-hardening notes (verified in the U-Boot disassembly and on hardware):
 
