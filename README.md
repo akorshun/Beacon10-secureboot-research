@@ -299,6 +299,22 @@ VTYSH/ONTUSER/BLDR` and the key name `key14`), computed by the vendor at build t
 the key-derivation chain (`keysrc0` = firmware version string, `/usr/etc/sec.key`, engine
 state seeded through `SecSetInputKV`/`SecPreProcessGenHash`).
 
+**Escate-init deep dive (follow-up).** The key-derivation pipeline was partially
+reproduced: `/sbin/sec_cli` contains a hidden `sedb` command —
+`sec_cli sedb -1 <keysrc1> -2 <keysrc2> [-3] [-4] [-e hashfile] [-f fwfile]` — which
+derives the whole key database from `/usr/etc/sec.key` plus keysrc strings and writes it
+to `/tmp/sedb.conf` (then copied to `/configs/sedb.conf`). The runtime key sources are
+confirmed from `/tmp/secKeySrc.conf` written by the boot-time engine:
+`keysrc0=keysrc1=keysrc2=3TN00367LJLJ17` (the firmware version string), plus a binary
+external firmware key `/tmp/.ext_fwkey` (base64-wrapped, 89 bytes) produced by the
+tamper-detection daemon. The engine itself runs as a service (`sec_monitor`, socket
+`/tmp/lsec_socket_server`), and `SE_loadSecFile` called from an isolated process returns
+the file size without populating the key table — the derived keys stay inside the
+monitor's address space. Recovering the ONTUSER password therefore requires speaking the
+`lsec` socket protocol (or further reversing `sec_monitor`); two 12-character strings
+embedded in `sec_cli` (`nSW6wc2[uofm`, `7lo:p9UzcjrS`) are generator chain inputs and
+verified **not** to be the password themselves.
+
 Reproduction attempts on-device (a musl-compiled `dlopen` harness executed on the router,
 `vtysh_re/harness.c`, built on an aarch64 CI runner) confirm `SecBlockInit` /
 `SecSetInputKV` / `SE_loadConfFile` work, but full key derivation requires the complete
