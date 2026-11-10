@@ -1,0 +1,4 @@
+vtysh_re/libsec_engine.so
+vtysh_re/sec_cli
+vtysh_re/sec_cli_memdump_shadowline.bin
+vtysh_re/wifihostd
