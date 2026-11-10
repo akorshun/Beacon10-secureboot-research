@@ -20,8 +20,7 @@ static void show_buf(const char *buf, int n) {
 
 int main(int argc, char **argv) {
     void *h = dlopen("/usr/lib/libsec_engine.so", RTLD_NOW);
-    if (!h) { printf("dlopen fail: %s
-", dlerror()); return 1; }
+    if (!h) { printf("dlopen fail: %s\n", dlerror()); return 1; }
     anyf SecBlockInit = dlsym(h, "SecBlockInit");
     anyf SetKV = dlsym(h, "SecSetInputKV");
     anyf gen_ont = dlsym(h, "gen_varlen_ontupw");
@@ -32,8 +31,7 @@ int main(int argc, char **argv) {
     anyf getkey = dlsym(h, "SE_getKeyByName");
 
     void *ctx = SecBlockInit();
-    printf("ctx=%p
-", ctx);
+    printf("ctx=%p\n", ctx);
     printf("loadconf(/configs/se.conf)=%p
 ", ((fn2)loadconf)("/configs/se.conf", 0));
     printf("loadsec(/configs/sedb.conf)=%p
@@ -43,8 +41,7 @@ int main(int argc, char **argv) {
     printf("loadconf(/usr/etc/se.conf)=%p
 ", ((fn2)loadconf)("/usr/etc/se.conf", 0));
 
-    printf("--- keys ---
-");
+    printf("--- keys ---\n");
     for (int i = 0; i < 20; i++) {
         char kn[16]; snprintf(kn, sizeof(kn), "key%d", i);
         char out[256]; memset(out, 0, sizeof(out));
