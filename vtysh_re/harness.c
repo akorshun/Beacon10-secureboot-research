@@ -42,8 +42,7 @@ int main(int argc, char **argv) {
         char kn[16]; snprintf(kn, sizeof(kn), "key%d", i);
         char out[256]; memset(out, 0, sizeof(out));
         void *r = (void *)((fn3)getkey)(kn, out, (void *)(long)sizeof(out));
-        if (r && out[0]) printf("key%d = \"%s\"
-", i, out);
+        if (r && out[0]) printf("key%d = \"%s\"\n", i, out);
     }
 
     char out1[512], out2[512];
