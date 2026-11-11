@@ -347,6 +347,31 @@ Once an ISP pushes a `BBDR2503`-based build, the root entry point described in
 makes the secure-boot situation documented in this repository the only remaining route to
 persistent alternative firmware on this hardware.
 
+**Hardware recovery from a corrupted env (tested 2026-11-11).** After the fsbootargs
+injection soft-bricked the device (boot loop with `init=/bin/sh`, no network, no serial),
+the eMMC communication was disrupted by shorting a specific via on the **top side of the
+PCB** near the SkyHigh S40FC004C eMMC chip (next to the MPS509 regulator, near test pad
+C2493) to GND, approximately 2-3 seconds after power-on. This corrupted the eMMC reads at
+the SBL1/U-Boot stage, which triggered the hidden **Nokia recovery console**:
+
+```
+>>> this command line is only used to get G984Serial before login Uboot command line <<<
+>>> please type "?" to get more info <<<
+>>> system will reset if no any command for over 10s <<<
+NOKIA >en
+Please input password: ████████
+IPQ9574#
+```
+
+The `en` command is password-protected (the password is derived from the device serial
+via `gen_varlen_ontupw` — not recovered, see below). Once at the U-Boot prompt (with
+console enabled by the `en` path), the GPT was restored via 700 UART-injected `mw.l`
+commands (writing the GPT backup data to RAM at `0x50000000`), followed by
+`mmc write 0x50000000 0 38` (writing the GPT to eMMC sectors 0-37), then
+`setenv fsbootargs` + `saveenv` (clearing the poisoned fsbootargs) and `reset`. The
+device recovered fully: stock booted normally, SSH accessible, `serial_is_dis` absent
+from the kernel cmdline.
+
 Two related vendor-hardening notes (verified in the U-Boot disassembly and on hardware):
 
 * The `secboot` env var (`1` vs `2`) only toggles the **serial console** at the prompt
