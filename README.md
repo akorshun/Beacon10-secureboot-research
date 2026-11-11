@@ -372,6 +372,29 @@ commands (writing the GPT backup data to RAM at `0x50000000`), followed by
 device recovered fully: stock booted normally, SSH accessible, `serial_is_dis` absent
 from the kernel cmdline.
 
+**Recovery photos:**
+
+| | |
+|---|---|
+| ![eMMC chip (SkyHigh S40FC004C) — underside of PCB](images/hw/emmc_underside.png) | ![Full board underside](images/hw/board_underside_full.png) |
+| ![Short point: via near eMMC on top side (red arrow)](images/hw/emmc_short_point.jpg) | ![GPT errors visible on COM21 during recovery](images/hw/gpt_errors_uart.png) |
+
+The recovery script (`tools/gpt_recovery.py`) and its command data (`tools/recovery_data.json`) are included. Usage:
+
+```
+# 1. Connect UART (COM port, 115200 8N1) and a GND wire with a probe/tweezers
+# 2. Start the script:
+python tools/gpt_recovery.py
+
+# 3. Power-cycle the router
+# 4. When the NOKIA console appears (triggered by the eMMC glitch):
+#    - Script sends "en" and tries the password
+#    - On success: U-Boot prompt (IPQ9574#) with console ENABLED
+#    - Script auto-injects ~700 mw.l commands (GPT backup → RAM 0x50000000)
+#    - Then: mmc dev 0; mmc write 0x50000000 0 38; setenv fsbootargs; saveenv; reset
+# 5. Stock boots normally; SSH via dropbear key; env is clean
+```
+
 Two related vendor-hardening notes (verified in the U-Boot disassembly and on hardware):
 
 * The `secboot` env var (`1` vs `2`) only toggles the **serial console** at the prompt
