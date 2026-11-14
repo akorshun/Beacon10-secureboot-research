@@ -407,6 +407,42 @@ Two related vendor-hardening notes (verified in the U-Boot disassembly and on ha
   2026-11-10 on router #2: custom `bootcmd` was skipped and bootipq ran), closing the
   environment-based persistence idea for good.
 
+## 7e. Pre-boot NOKIA console — password fully reversed, but the check is vendor-broken (2026-11-13)
+
+Full write-up: [NOKIA_console_password_RE.md](NOKIA_console_password_RE.md). TL;DR:
+
+- The hidden pre-boot console (`NOKIA >`, commands `en`/`show`/`exit`) appears on
+  countdown keypress and on `boot_fail` threshold; `en` gates the U-Boot shell behind a
+  password derived from the device `G984Serial`.
+- The derivation (from APPSBL, verified by Unicorn emulation of the real binary):
+  `sha256(lower(G984Serial) + xor20("EXT_BOOT_PWD" + chr(0) + "oO01lI+/=" + chr(0) + "sjQ51klId")) -> base64 -> first 12 chars`,
+  with an `EXT_BOOT_PWD` env override and a `SECURITY`-gated patch step. Firmware SHA-256 is
+  byte-identical to standard (verified by emulation).
+- **Vendor bug:** the `G984Serial` value in the RI partition (p28) carries a `0xff`
+  (erased-byte) prefix, so `strlen(expected)=9` while the check requires 8 -> the compare
+  returns -1 before the crypto runs. **The `en` login is unconditionally impossible on
+  factory units** — every password is rejected. Verified on hardware and in emulation.
+- Automation notes: password input terminates on CR only (not LF); countdown keypress routes
+  to the NOKIA console, not the shell.
+
+## 7f. UART-free persistent custom rootfs — working (2026-11-14)
+
+Full write-up: [CUSTOM_ROOTFS_UART_FREE.md](CUSTOM_ROOTFS_UART_FREE.md). TL;DR:
+
+- `fsbootargs` env is appended to the kernel cmdline on every boot; `root=` and
+  `init=` reach the kernel (verified) while the rootfs partition itself is NOT
+  signature-verified.
+- Result: signed stock kernel 5.4.164 + attacker-controlled ext4 rootfs on p34
+  (`opt`) = persistent custom system, two verified reboots with **zero UART**.
+- Details: static `myinsmod` (CI-built) because the vendor busybox has no insmod
+  applet; device nodes must be mknod'ed into the image (no devtmpfs); one subnet
+  per interface (ARP flux); respawn-loop init so the kernel can never panic.
+- Recovery: eMMC glitch → U-Boot prompt → `tools/fix_full.py` (GPT restore +
+  `fsbootargs` cleanup; `saveenv` only works with intact GPT).
+- Not upstream OpenWrt — kernel stays vendor-signed 5.4; OpenWrt 6.18 still needs
+  UART `bootm`. Security-wise: one-time root (CVE-2025-9974) → `fw_setenv` →
+  persistent userland, surviving A/B slot switches.
+
 ## 8. Disclosure
 
 Findings were developed 2026-11-06…09 on personal devices and shared publicly in the
@@ -426,22 +462,3 @@ for this document given the positive security outcome (the XPU contains the prim
 * Vendor U-Boot quirks that will bite you: `tftpput` caches its arguments from the first
   call of a session; `fw_setenv` silently drops negative values (`-1` parsed as a flag);
   the eMMC/eth init is flaky on cold boots.
-
-
-## 7e. Pre-boot NOKIA console — password fully reversed, but the check is vendor-broken (2026-11-13)
-
-Full write-up: [NOKIA_console_password_RE.md](NOKIA_console_password_RE.md). TL;DR:
-
-- The hidden pre-boot console (`NOKIA >`, commands `en`/`show`/`exit`) appears on
-  countdown keypress and on `boot_fail` threshold; `en` gates the U-Boot shell behind a
-  password derived from the device `G984Serial`.
-- The derivation (from APPSBL, verified by Unicorn emulation of the real binary):
-  `sha256(lower(G984Serial) + xor20("EXT_BOOT_PWD oO01lI+/= sjQ51klId")) -> base64 -> first 12 chars`,
-  with an `EXT_BOOT_PWD` env override and a `SECURITY`-gated patch step. Firmware SHA-256 is
-  byte-identical to standard (verified by emulation).
-- **Vendor bug:** the `G984Serial` value in the RI partition (p28) carries a `0xff`
-  (erased-byte) prefix, so `strlen(expected)=9` while the check requires 8 -> the compare
-  returns -1 before the crypto runs. **The `en` login is unconditionally impossible on
-  factory units** — every password is rejected. Verified on hardware and in emulation.
-- Automation notes: password input terminates on CR only (not LF); countdown keypress routes
-  to the NOKIA console, not the shell.

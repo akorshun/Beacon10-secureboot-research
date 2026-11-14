@@ -1,4 +1,4 @@
-# UART-free persistent custom rootfs on Nokia Beacon 10 (§8)
+# UART-free persistent custom rootfs on Nokia Beacon 10 (§7f)
 
 **Status:** WORKING — verified with two consecutive reboots, no UART interaction
 **Date:** 2026-11-14
