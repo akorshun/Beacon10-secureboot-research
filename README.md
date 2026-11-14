@@ -87,7 +87,7 @@ Three containers differing only in `phdr2.p_vaddr` (all other bytes identical), 
 |---|---|---|---|
 | A (control) | 0x44000000 | [0x44000000, 0x4e000000) | clean `Kernel image authentication failed` + `BUG!` + reset (the normal path) |
 | B | **0x4a400000** | [0x49ffe000, 0x59ffe000) | **hard reset mid `MMC read` with no authentication message** — the write crossed the live U-Boot/protected region and the board died before the signature check could run |
-| D1 | 0x49a42000 | [0x49a40000, 0x4a400000) | read **completes** — proves the region below 0x4a400000 is DMA-writable |
+| D1 | 0x49a42000 | [0x49a40000, 0x4a440000) | **dies mid-read** — window crosses 0x4a400000 (correction 2026-11-14; the log has no `20480 blocks read: OK`) |
 
 Raw console captures: [`logs/probe_a.bootipq.out`](logs/probe_a_ctl.bin.bootipq.out),
 [`logs/probe_b.bootipq.out`](logs/probe_b.bootipq.out), [`logs/probe_d1.out`](logs/probe_d1.out).
@@ -109,16 +109,29 @@ The blast window is fixed at exactly 10 MiB. Geometry:
 * To cover the code region the window must start at `p_vaddr - p_offset ≤ 0x4a400000` and
   therefore always extends ≥ 10 MiB upward, crossing **0x4a400000 itself** — the first byte
   of the XPU-protected bootloader region.
-* To cover the stack the window must start at `≥ 0x4a27fa90 - 10 MiB = 0x4027fa90`; any such
-  window ends at `≥ 0x4a27fa90`, and every window ending at or beyond `0x4a27fa90` that is
-  wide enough to reach downward past the code... cannot: a 10 MiB window covering the stack
-  necessarily extends ~8.4 MiB past the stack top, across the 0x4a400000 boundary.
-* Empirically: probe B (window crossing 0x4a400000) hard-resets mid-read — the XPU denies
-  the DMA write to the bootloader region — while probe D1 (window ending exactly at
-  0x4a400000) completes. The boundary sits precisely between the writable world and
-  everything worth overwriting.
+* ~~To cover the stack the window must start at `≥ 0x4a27fa90 - 10 MiB = 0x4027fa90`~~
+  **CORRECTION (2026-11-14, after an external review by DeepSeek K3.1 Pro caught the
+  arithmetic):** `0x4a27fa80 - 10 MiB = 0x4987fa80` (the published `0x4027fa90` was a hex
+  subtraction error, off by ~160 MiB). A 10 MiB window `[0x4987fa80, 0x4a27fa80]` covering
+  the stack does NOT reach the code region — so the original geometric argument for the
+  stack was wrong and the question had to be settled on hardware.
+* Empirically (window = `[dest, dest+0xA00000)`, dest = `p_vaddr - p_offset`):
+  * probe B, window crossing 0x4a400000 — hard reset mid-read (XPU denies bootloader region);
+  * probe D1, `p_vaddr=0x49a42000` → window `[0x49a40000, 0x4a440000)` — **also dies mid-read**
+    (the published 'read completes' was wrong: `logs/probe_d1.out` has no `20480 blocks read:
+    OK` line);
+  * window ending exactly AT the boundary, `[0x49a00000, 0x4a400000)` — **dies** (8 watchdog
+    cycles, zero completed reads);
+  * window covering the stack, `[0x49880000, 0x4a280000)` — **dies** (15 cycles, zero
+    completed reads);
+  * window below the stack, `[0x49500000, 0x49f00000)` — **read completes**.
+  Conclusion: the DMA-protected region includes the stack itself (protection extends at
+  least down to ~0x4a280000, i.e. the whole `0x4a28xxxx–0x4a400000` area is covered), so a
+  return-address overwrite via the pre-auth write is impossible — the ROP path suggested
+  for the corrected geometry is closed empirically, not geometrically.
 
-With the code and stack both unreachable, the remaining writable regions
+With the code and stack both unreachable (code — by geometry + probe B; stack — by the
+direct hardware tests above), the remaining writable regions
 (free DRAM below `0x4a100000`, and the `0x4a100000`–`0x4a400000` scratch area) contain
 nothing that redirects execution. An attempted full exploit
 ([`tools/build_exploit.py`](tools/build_exploit.py) — memory-image container with the
