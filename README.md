@@ -462,3 +462,12 @@ for this document given the positive security outcome (the XPU contains the prim
 * Vendor U-Boot quirks that will bite you: `tftpput` caches its arguments from the first
   call of a session; `fw_setenv` silently drops negative values (`-1` parsed as a flag);
   the eMMC/eth init is flaky on cold boots.
+
+
+## 7g. External suggestions tested: preboot / netconsole / bootipq args / HLOS differential — all dead (2026-11-14)
+
+Full write-up: [DEEPSEEK_EXPERIMENTS_RESULTS.md](DEEPSEEK_EXPERIMENTS_RESULTS.md). `preboot` never
+executes (vendor rewrote autoboot — tested on hardware by patching the env partition **directly from
+the custom rootfs**, no UART needed); netconsole is not compiled in; `bootipq` has no arguments;
+the HLOS `phdr` table is covered by the signature (§7c). Env-patch-without-UART method documented
+there is reusable.
