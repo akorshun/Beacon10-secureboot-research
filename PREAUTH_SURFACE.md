@@ -61,3 +61,19 @@ format itself is partially documented in CAF secboot sources, which helps.
 | QSEE/secapp metadata parser | **open** — hang proves pre-verdict parsing; copy-vs-dereference unknown; reversing required |
 | SCM verdict glitching | hardware-only (ChipWhisperer-class), not attempted |
 | UART automation (Pico) | known working fallback |
+
+## Addendum: external CVE suggestion evaluated (2026-11-22)
+
+A PR reviewer suggested CVE-2021-27097 / CVE-2021-27138 (U-Boot FIT signature-verification
+bypasses, fixed in 2021.04-rc2) for booting a modified FIT. Verdict: **not applicable**.
+
+* The vulnerable libfdt code is present in U-Boot 2016.01, but the CVE attack model
+  (verify node X, boot node Y) requires U-Boot itself to be the signature verifier.
+* On Beacon 10 the verification is in QSEE (secure world) via SCM — U-Boot never parses
+  the FIT before the verdict (probe A log order, see above), and the metadata/phdr/segment
+  chain is TESTCERT-signed (phdr mutations = clean rejects, descriptor = DoS only).
+* The manual `bootm` path has no verdict to bypass (boots unsigned directly).
+
+Reply posted to the PR comment thread. The underlying observation that *any*
+Nokia-signed container passes the verdict remains the only viable signed-image avenue
+(no public firmware dumps exist, see §test-firmware).
